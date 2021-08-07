@@ -15,5 +15,11 @@
   "bugs": {
     "url": "https://github.com/codydeatherage/bookclub-back/issues"
   },
-  "homepage": "https://github.com/codydeatherage/bookclub-back#readme"
+  "homepage": "https://github.com/codydeatherage/bookclub-back#readme",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "mongoose": "^5.13.5"
+  }
 }
