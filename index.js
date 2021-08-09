@@ -2,7 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const db = require('./db')
 const router = require('./router')
-
+require('dotenv').config();
 const app = express()
 const apiPort = 3000
 
@@ -13,7 +13,7 @@ app.use(express.json())
 db.on('error', console.error.bind(console, 'MongoDB connection error:'))
 
 app.get('/', (req, res) => {
-    res.send('Hello World!')
+    res.send('bookclub town')
 })
 
 app.use('/api', router)
