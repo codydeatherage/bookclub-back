@@ -1,38 +1,60 @@
 const axios = require('axios')
+const bcrypt = require('bcrypt')
 const Account = require('./models/account')
+const { MongoClient } = require("mongodb")
+const db = require('./db')
 const cache_ttl = 3600;
 
-const createAccount = (req, res) =>{
+const createAccount = async (req, res) => {
     const body = req.body;
-    console.log('starting acc check');
-    if(!body){
-        return res.status(400).json({
-            success: false,
-            error: 'No username/password'
-        })
-    }
+    let userExists = false;
 
     const account = new Account(body);
-    if(!account){
-        return res.status(400).json({success: false, error: err})
+    console.log(body);
+    const regEmail = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/;
+
+    if (regEmail.test(account.username)) {
+        const userCheck = await db.collection('accounts').findOne({ username: `${account.username}` })
+        if (userCheck) {
+            userExists = true;
+        }
     }
 
-    account.save().then(()=>{
-        return(res.status(201).json({
-            success: true,
-            id: account._id,
-            message: 'Account created!'
-        }))
-    })
-    .catch(err => {
-        return res.status(400).json({
-            err,
-            message: 'Account not created!'
-        })
-    })
+    if (!regEmail.test(account.username)) {
+        console.log('400 Invalid Email');
+        return res.status(400).json({ success: false, error: 'Invalid email' })
+    }
+
+    else if (!account || account.pass === '') {
+        return res.status(400).json({ success: false, error: err })
+    }
+
+    else {
+        if (!userExists) {
+            const salt = await bcrypt.genSalt(10);
+            account.pass = await bcrypt.hash(account.pass.toString(), salt);
+            account.save().then(() => {
+                console.log(`Account created  ${account.pass}`);
+                return (res.status(201).json({
+                    success: true,
+                    id: account._id,
+                    message: 'Account created!'
+                }))
+            })
+                .catch(err => {
+                    return res.status(400).json({
+                        err,
+                        message: 'Account not created!'
+                    })
+                })
+        }
+        else {
+            console.log('401 User Already Exists');
+            return (res.status(401).json({ success: false, error: 'Username already exists' }))
+        }
+    }
+
 }
-
-
 
 module.exports = {
     createAccount
