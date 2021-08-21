@@ -5,6 +5,22 @@ const { MongoClient } = require("mongodb")
 const db = require('./db')
 const cache_ttl = 3600;
 
+const login = async (req, res) => {
+    const body = req.body;
+    const account = await Account.findOne({username: body.username});
+    if(account){
+        const validPass = await bcrypt.compare(body.pass, user.pass);
+        if(validPass){
+             return res.status(200).json({message: "Password match"});
+        }else{
+            return res.status(400).json({error: "Password incorrect"});
+        }
+    }
+    else{
+        return res.status(401).json({error: "User does not exist"});
+    }
+}
+
 const createAccount = async (req, res) => {
     const body = req.body;
     let userExists = false;
@@ -57,5 +73,6 @@ const createAccount = async (req, res) => {
 }
 
 module.exports = {
+    login,
     createAccount
 }
