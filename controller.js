@@ -4,30 +4,23 @@ const Account = require('./models/account')
 const { MongoClient } = require("mongodb")
 const db = require('./db')
 const cache_ttl = 3600;
-const salt = bcrypt.genSaltSync(10);
-function compare(currPass, hashed) {
-    bcrypt.compare(currPass, hashed, (err, res)=>{
-        console.log(`comparing: ${currPass} || ${hashed}`)
-    })
-}
+
 
 const login = async (req, res) => {
     const body = req.body;
+    console.log('bodyuser', body.username, body.pass);
     const account = await Account.findOne({ username: body.username });
     if (account) {
-        body.pass = bcrypt.hash(body.pass.toString(), salt, (err, res)=>{
-            console.log('hash', res);
-            hash = res;
-            compare(body.pass.toString(), account.pass);
+        bcrypt.compare(body.pass.toString(), account.pass.toString(), (err, result) => {
+            if (err) { throw err }
+            else if (result) {
+                console.log('Password Match')
+                return res.status(200).json({ message: "Password match" });
+            } else {
+                console.log("Password doesn't match");
+                return res.status(400).json({ error: "Password incorrect" });
+            }
         })
-        const validPass = compare(body.pass, account.pass);
-        if (validPass) {
-            console.log('Account checks out')
-            return res.status(200).json({ message: "Password match" });
-        } else {
-            console.log('no account match')
-            return res.status(400).json({ error: "Password incorrect" });
-        }
     }
     else {
         return res.status(400).json({ error: "User does not exist" });
@@ -36,17 +29,14 @@ const login = async (req, res) => {
 
 const createAccount = async (req, res) => {
     const body = req.body;
+    const salt = bcrypt.genSaltSync(10);
     let userExists = false;
-
     const account = new Account(body);
     console.log(body);
     const regEmail = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/;
-
     if (regEmail.test(account.username)) {
         const userCheck = await db.collection('accounts').findOne({ username: `${account.username}` })
-        if (userCheck) {
-            userExists = true;
-        }
+        userCheck && (userExists = true);
     }
 
     if (!regEmail.test(account.username)) {
@@ -60,10 +50,7 @@ const createAccount = async (req, res) => {
 
     else {
         if (!userExists) {
-            account.pass = await bcrypt.hash(account.pass.toString(), salt, (err, res)=>{
-                hash = res;
-                compare(hash);
-            });
+            account.pass = await bcrypt.hash(account.pass.toString(), salt)
             account.save().then(() => {
                 console.log(`Account created  ${account.pass}`);
                 return (res.status(201).json({
@@ -84,7 +71,6 @@ const createAccount = async (req, res) => {
             return (res.status(400).json({ success: false, error: 'Username already exists' }))
         }
     }
-
 }
 
 module.exports = {
