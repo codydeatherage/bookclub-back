@@ -1,14 +1,10 @@
 const axios = require('axios')
 const bcrypt = require('bcrypt')
 const Account = require('./models/account')
-const { MongoClient } = require("mongodb")
 const db = require('./db')
-const cache_ttl = 3600;
-
 
 const login = async (req, res) => {
     const body = req.body;
-    console.log('bodyuser', body.username, body.pass);
     const account = await Account.findOne({ username: body.username });
     if (account) {
         bcrypt.compare(body.pass.toString(), account.pass.toString(), (err, result) => {
@@ -32,22 +28,16 @@ const createAccount = async (req, res) => {
     const salt = bcrypt.genSaltSync(10);
     let userExists = false;
     const account = new Account(body);
-    console.log(body);
     const regEmail = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/;
     if (regEmail.test(account.username)) {
         const userCheck = await db.collection('accounts').findOne({ username: `${account.username}` })
         userCheck && (userExists = true);
     }
 
-    if (!regEmail.test(account.username)) {
+    if (!regEmail.test(account.username) || !account || account.pass === '') {
         console.log('400 Invalid Email');
-        return res.status(201).json({ success: false, message: 'Invalid email' })
+        return res.status(400).json({ success: false, message: 'Username or password invalid' })
     }
-
-    else if (!account || account.pass === '') {
-        return res.status(400).json({ success: false, message: 'Username and Password do not match' })
-    }
-
     else {
         if (!userExists) {
             account.pass = await bcrypt.hash(account.pass.toString(), salt)
@@ -68,7 +58,7 @@ const createAccount = async (req, res) => {
         }
         else {
             console.log('401 User Already Exists');
-            return (res.status(400).json({ success: false, error: 'Username already exists' }))
+            return (res.status(401).json({ success: false, error: 'Username already exists' }))
         }
     }
 }
