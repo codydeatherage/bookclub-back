@@ -2,6 +2,16 @@ const axios = require('axios')
 const bcrypt = require('bcrypt')
 const Account = require('./models/account')
 const db = require('./db')
+const dotenv = require('dotenv');
+dotenv.configure({ path: `${__dirname}/.env.local` })
+
+
+const getVolumeData = async () => {
+    await axios.get(`https://comicvine.gamespot.com/api/publisher/4010-10/?api_key=${process.env.API_KEY}&format=json`)
+        .then((res) => {
+            console.log(res);
+        })
+}
 
 const login = async (req, res) => {
     const body = req.body;
@@ -65,5 +75,6 @@ const createAccount = async (req, res) => {
 
 module.exports = {
     login,
-    createAccount
+    createAccount,
+    getVolumeData
 }
